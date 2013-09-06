@@ -51,24 +51,24 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
 @implementation GTMOAuth2ViewControllerTouch
 
 // IBOutlets
-@synthesize request = request_,
+@synthesize request = _authRequest,
             backButton = backButton_,
             forwardButton = forwardButton_,
             navButtonsView = navButtonsView_,
             rightBarButtonItem = rightBarButtonItem_,
-            webView = webView_,
-            initialActivityIndicator = initialActivityIndicator_;
+            webView = _webView,
+            initialActivityIndicator = _activityIndicator;
 
 @synthesize keychainItemName = keychainItemName_,
             keychainItemAccessibility = keychainItemAccessibility_,
             initialHTMLString = initialHTMLString_,
             browserCookiesURL = browserCookiesURL_,
-            signIn = signIn_,
+            signIn = _authSignIn,
             userData = userData_,
             properties = properties_;
 
 #if NS_BLOCKS_AVAILABLE
-@synthesize popViewBlock = popViewBlock_;
+@synthesize popViewBlock = _popViewBlock;
 #endif
 
 #if !GTM_OAUTH2_SKIP_GOOGLE_SUPPORT
@@ -142,7 +142,7 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
                              delegate:nil
                      finishedSelector:NULL];
   if (self) {
-    completionBlock_ = [handler copy];
+    _authCompleted = [handler copy];
   }
   return self;
 }
@@ -168,18 +168,15 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
                     delegate:(id)delegate
             finishedSelector:(SEL)finishedSelector {
 
-  NSString *nibName = [[self class] authNibName];
-  NSBundle *nibBundle = [[self class] authNibBundle];
-
-  self = [super initWithNibName:nibName bundle:nibBundle];
+  self = [super init];
   if (self != nil) {
-    delegate_ = [delegate retain];
-    finishedSelector_ = finishedSelector;
+    _authDelegate = [delegate retain];
+    _authCompletedSelector = finishedSelector;
 
     Class signInClass = [[self class] signInClass];
 
     // use the supplied auth and OAuth endpoint URLs
-    signIn_ = [[signInClass alloc] initWithAuthentication:auth
+    _authSignIn = [[signInClass alloc] initWithAuthentication:auth
                                          authorizationURL:authorizationURL
                                                  delegate:self
                                        webRequestSelector:@selector(signIn:displayRequest:)
@@ -190,7 +187,7 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
     //
     // for other service domains, or to disable clearing of the cookies,
     // set the browserCookiesURL property explicitly
-    NSString *authorizationHost = [signIn_.authorizationURL host];
+    NSString *authorizationHost = [_authSignIn.authorizationURL host];
     if ([authorizationHost hasSuffix:@".google.com"]) {
       NSString *urlStr = [NSString stringWithFormat:@"https://%@/",
                           authorizationHost];
@@ -225,27 +222,27 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
                              delegate:nil
                      finishedSelector:NULL];
   if (self) {
-    completionBlock_ = [handler copy];
+    _authCompleted = [handler copy];
   }
   return self;
 }
 #endif
 
 - (void)dealloc {
-  [webView_ setDelegate:nil];
+  [_webView setDelegate:nil];
 
   [backButton_ release];
   [forwardButton_ release];
-  [initialActivityIndicator_ release];
+  [_activityIndicator release];
   [navButtonsView_ release];
   [rightBarButtonItem_ release];
-  [webView_ release];
-  [signIn_ release];
-  [request_ release];
-  [delegate_ release];
+  [_webView release];
+  [_authSignIn release];
+  [_authRequest release];
+  [_authDelegate release];
 #if NS_BLOCKS_AVAILABLE
-  [completionBlock_ release];
-  [popViewBlock_ release];
+  [_authCompleted release];
+  [_popViewBlock release];
 #endif
   [keychainItemName_ release];
   [initialHTMLString_ release];
@@ -254,16 +251,6 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
   [properties_ release];
 
   [super dealloc];
-}
-
-+ (NSString *)authNibName {
-  // subclasses may override this to specify a custom nib name
-  return @"GTMOAuth2ViewTouch";
-}
-
-+ (NSBundle *)authNibBundle {
-  // subclasses may override this to specify a custom nib bundle
-  return nil;
 }
 
 #if !GTM_OAUTH2_SKIP_GOOGLE_SUPPORT
@@ -361,29 +348,15 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
 }
 
 - (void)loadView {
-  NSString *nibPath = nil;
-  NSBundle *nibBundle = [self nibBundle];
-  if (nibBundle == nil) {
-    nibBundle = [NSBundle mainBundle];
-  }
-  NSString *nibName = self.nibName;
-  if (nibName != nil) {
-    nibPath = [nibBundle pathForResource:nibName ofType:@"nib"];
-  }
-  if (nibPath != nil && [[NSFileManager defaultManager] fileExistsAtPath:nibPath]) {
-    [super loadView];
-  } else {
-    // One of the requirements of loadView is that a valid view object is set to
-    // self.view upon completion. Otherwise, subclasses that attempt to
-    // access self.view after calling [super loadView] will enter an infinite
-    // loop due to the fact that UIViewController's -view accessor calls
-    // loadView when self.view is nil.
-    self.view = [[[UIView alloc] init] autorelease];
+    _webView = [[UIWebView alloc] init];
+    self.view = _webView;
+    _webView.delegate = self;
 
-#if DEBUG
-    NSLog(@"missing %@.nib", nibName);
-#endif
-  }
+/*    self.navigationItem.rightBarButtonItems = @[
+            [[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"UIButtonBarArrowLeft"] style:UIBarButtonItemStylePlain target:_webView action:@selector(goBack)] autorelease],
+            [[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"UIButtonBarArrowRight"] style:UIBarButtonItemStylePlain target:_webView action:@selector(goForward)] autorelease],
+    ];*/
+
 }
 
 
@@ -457,16 +430,16 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
   // (so no further callback is required)
   hasCalledFinished_ = YES;
 
-  [delegate_ autorelease];
-  delegate_ = nil;
+  [_authDelegate autorelease];
+    _authDelegate = nil;
 
 #if NS_BLOCKS_AVAILABLE
-  [completionBlock_ autorelease];
-  completionBlock_ = nil;
+  [_authCompleted autorelease];
+  _authCompleted = nil;
 #endif
 
   // The sign-in object's cancel method will close the window
-  [signIn_ cancelSigningIn];
+  [_authSignIn cancelSigningIn];
   hasDoneFinalRedirect_ = YES;
 }
 
@@ -516,11 +489,11 @@ static Class gSignInClass = Nil;
 #pragma mark Accessors
 
 - (void)setNetworkLossTimeoutInterval:(NSTimeInterval)val {
-  signIn_.networkLossTimeoutInterval = val;
+  _authSignIn.networkLossTimeoutInterval = val;
 }
 
 - (NSTimeInterval)networkLossTimeoutInterval {
-  return signIn_.networkLossTimeoutInterval;
+  return _authSignIn.networkLossTimeoutInterval;
 }
 
 - (BOOL)shouldUseKeychain {
@@ -598,10 +571,10 @@ static Class gSignInClass = Nil;
       // showsInitialActivityIndicator to YES.
       NSString *html = self.initialHTMLString;
       if ([html length] > 0) {
-        [initialActivityIndicator_ setHidden:(mustShowActivityIndicator_ < 1)];
+        [_activityIndicator setHidden:(mustShowActivityIndicator_ < 1)];
         [self.webView loadHTMLString:html baseURL:nil];
       } else {
-        [initialActivityIndicator_ setHidden:(mustShowActivityIndicator_ < 0)];
+        [_activityIndicator setHidden:(mustShowActivityIndicator_ < 0)];
         [self.webView loadRequest:request];
       }
     } else {
@@ -649,28 +622,28 @@ static Class gSignInClass = Nil;
       }
     }
 
-    if (delegate_ && finishedSelector_) {
-      SEL sel = finishedSelector_;
-      NSMethodSignature *sig = [delegate_ methodSignatureForSelector:sel];
+    if (_authDelegate && _authCompletedSelector) {
+      SEL sel = _authCompletedSelector;
+      NSMethodSignature *sig = [_authDelegate methodSignatureForSelector:sel];
       NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:sig];
       [invocation setSelector:sel];
-      [invocation setTarget:delegate_];
+      [invocation setTarget:_authDelegate];
       [invocation setArgument:&self atIndex:2];
       [invocation setArgument:&auth atIndex:3];
       [invocation setArgument:&error atIndex:4];
       [invocation invoke];
     }
 
-    [delegate_ autorelease];
-    delegate_ = nil;
+    [_authDelegate autorelease];
+      _authDelegate = nil;
 
 #if NS_BLOCKS_AVAILABLE
-    if (completionBlock_) {
-      completionBlock_(self, auth, error);
+    if (_authCompleted) {
+      _authCompleted(self, auth, error);
 
       // release the block here to avoid a retain loop on the controller
-      [completionBlock_ autorelease];
-      completionBlock_ = nil;
+      [_authCompleted autorelease];
+      _authCompleted = nil;
     }
 #endif
   }
@@ -706,7 +679,7 @@ static Class gSignInClass = Nil;
     if ([self isNavigationBarTranslucent]) {
       [self moveWebViewFromUnderNavigationBar];
     }
-    if (![signIn_ startSigningIn]) {
+    if (![_authSignIn startSigningIn]) {
       // Can't start signing in. We must pop our view.
       // UIWebview needs time to stabilize. Animations need time to complete.
       // We remove ourself from the view stack after that.
@@ -737,7 +710,7 @@ static Class gSignInClass = Nil;
     //
     // this will indirectly call our signIn:finishedWithAuth:error: method
     // for us
-    [signIn_ windowWasClosed];
+    [_authSignIn windowWasClosed];
 
 #if NS_BLOCKS_AVAILABLE
     self.popViewBlock = nil;
@@ -756,7 +729,7 @@ static Class gSignInClass = Nil;
   // We don't call super's version of this method because
   // -[UIViewController viewDidLayoutSubviews] is documented as a no-op, that
   // didn't exist before iOS 5.
-  [initialActivityIndicator_ setCenter:[webView_ center]];
+  [_activityIndicator setCenter:[_webView center]];
 }
 
 - (BOOL)webView:(UIWebView *)webView
@@ -764,7 +737,7 @@ static Class gSignInClass = Nil;
               navigationType:(UIWebViewNavigationType)navigationType {
 
   if (!hasDoneFinalRedirect_) {
-    hasDoneFinalRedirect_ = [signIn_ requestRedirectedToRequest:request];
+    hasDoneFinalRedirect_ = [_authSignIn requestRedirectedToRequest:request];
     if (hasDoneFinalRedirect_) {
       // signIn has told the view to close
       return NO;
@@ -792,7 +765,7 @@ static Class gSignInClass = Nil;
 
   NSString *title = [webView stringByEvaluatingJavaScriptFromString:@"document.title"];
   if ([title length] > 0) {
-    [signIn_ titleChanged:title];
+    [_authSignIn titleChanged:title];
   } else {
 #if DEBUG
     // Verify that Javascript is enabled
@@ -806,8 +779,8 @@ static Class gSignInClass = Nil;
     [self setInitialHTMLString:nil];
     [self.webView loadRequest:self.request];
   } else {
-    [initialActivityIndicator_ setHidden:YES];
-    [signIn_ cookiesChanged:[NSHTTPCookieStorage sharedHTTPCookieStorage]];
+    [_activityIndicator setHidden:YES];
+    [_authSignIn cookiesChanged:[NSHTTPCookieStorage sharedHTTPCookieStorage]];
 
     [self updateUI];
   }
@@ -836,13 +809,13 @@ static Class gSignInClass = Nil;
       return;
     }
 
-    [signIn_ loadFailedWithError:error];
+    [_authSignIn loadFailedWithError:error];
   } else {
     // UIWebview needs time to stabilize. Animations need time to complete.
-    [signIn_ performSelector:@selector(loadFailedWithError:)
-                  withObject:error
-                  afterDelay:0.5
-                     inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+    [_authSignIn performSelector:@selector(loadFailedWithError:)
+                      withObject:error
+                      afterDelay:0.5
+                         inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
   }
 }
 

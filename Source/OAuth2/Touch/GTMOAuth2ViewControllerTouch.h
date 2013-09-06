@@ -50,31 +50,27 @@ typedef void (^GTMOAuth2ViewControllerCompletionHandler)(GTMOAuth2ViewController
 
 @interface GTMOAuth2ViewControllerTouch : UIViewController<UINavigationControllerDelegate, UIWebViewDelegate> {
  @private
-  UIButton *backButton_;
-  UIButton *forwardButton_;
-  UIActivityIndicatorView *initialActivityIndicator_;
-  UIView *navButtonsView_;
-  UIBarButtonItem *rightBarButtonItem_;
-  UIWebView *webView_;
+  UIActivityIndicatorView *_activityIndicator;
+  UIWebView *_webView;
 
   // The object responsible for the sign-in networking sequence; it holds
   // onto the authentication object as well.
-  GTMOAuth2SignIn *signIn_;
+  GTMOAuth2SignIn *_authSignIn;
 
   // the page request to load when awakeFromNib occurs
-  NSURLRequest *request_;
+  NSURLRequest *_authRequest;
 
   // The user we're calling back
   //
   // The delegate is retained only until the callback is invoked
   // or the sign-in is canceled
-  id delegate_;
-  SEL finishedSelector_;
+  id _authDelegate;
+  SEL _authCompletedSelector;
 
 #if NS_BLOCKS_AVAILABLE
-  GTMOAuth2ViewControllerCompletionHandler completionBlock_;
+  GTMOAuth2ViewControllerCompletionHandler _authCompleted;
 
-  void (^popViewBlock_)(void);
+  void (^_popViewBlock)(void);
 #endif
 
   NSString *keychainItemName_;
@@ -263,12 +259,6 @@ typedef void (^GTMOAuth2ViewControllerCompletionHandler)(GTMOAuth2ViewController
             keychainItemName:(NSString *)keychainItemName
            completionHandler:(GTMOAuth2ViewControllerCompletionHandler)handler;
 #endif
-
-// subclasses may override authNibName to specify a custom name
-+ (NSString *)authNibName;
-
-// subclasses may override authNibBundle to specify a custom bundle
-+ (NSBundle *)authNibBundle;
 
 // subclasses may override setUpNavigation to provide their own navigation
 // controls
