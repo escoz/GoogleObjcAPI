@@ -283,26 +283,21 @@ typedef void (^GTMOAuth2ViewControllerCompletionHandler)(GTMOAuth2ViewController
 // token and secret stored in the keychain; if no token is available, return
 // an unauthorized auth object. OK to pass NULL for the error parameter.
 #if !GTM_OAUTH2_SKIP_GOOGLE_SUPPORT
-+ (GTMOAuth2Authentication *)authForGoogleFromKeychainForName:(NSString *)keychainItemName
-                                                     clientID:(NSString *)clientID
-                                                 clientSecret:(NSString *)clientSecret
-                                                        error:(NSError **)error;
+
++ (GTMOAuth2Authentication *)authForGoogleFromKeychainForName:(NSString *)keychainItemName clientID:(NSString *)clientID clientSecret:(NSString *)clientSecret email:(NSString *)email error:(NSError **)error;
+
 // Equivalent to calling the method above with a NULL error parameter.
-+ (GTMOAuth2Authentication *)authForGoogleFromKeychainForName:(NSString *)keychainItemName
-                                                     clientID:(NSString *)clientID
-                                                 clientSecret:(NSString *)clientSecret;
++ (GTMOAuth2Authentication *)authForGoogleFromKeychainForName:(NSString *)keychainItemName clientID:(NSString *)clientID clientSecret:(NSString *)clientSecret email:(NSString *)email;
 #endif
 
 // add tokens from the keychain, if available, to the authentication object
 //
 // returns YES if the authentication object was authorized from the keychain
-+ (BOOL)authorizeFromKeychainForName:(NSString *)keychainItemName
-                      authentication:(GTMOAuth2Authentication *)auth
-                               error:(NSError **)error;
++ (BOOL)authorizeFromKeychainForName:(NSString *)keychainItemName authentication:(GTMOAuth2Authentication *)auth email:(NSString *)email error:(NSError **)error;
 
 // method for deleting the stored access token and secret, useful for "signing
 // out"
-+ (BOOL)removeAuthFromKeychainForName:(NSString *)keychainItemName;
++ (BOOL)removeAuthFromKeychainForName:(NSString *)keychainItemName email:(NSString *)email;
 
 // method for saving the stored access token and secret
 //
@@ -335,14 +330,13 @@ enum {
 + (GTMOAuth2Keychain *)defaultKeychain;
 
 // OK to pass nil for the error parameter.
-- (NSString *)passwordForService:(NSString *)service
-                         account:(NSString *)account
-                           error:(NSError **)error;
+- (NSString *)passwordForService:(NSString *)service account:(NSString *)account email:(NSString *)email error:(NSError **)error;
 
 // OK to pass nil for the error parameter.
 - (BOOL)removePasswordForService:(NSString *)service
                          account:(NSString *)account
-                           error:(NSError **)error;
+        email:(NSString *)email
+        error:(NSError **)error;
 
 // OK to pass nil for the error parameter.
 //
@@ -352,7 +346,8 @@ enum {
          forService:(NSString *)service
       accessibility:(CFTypeRef)accessibility
             account:(NSString *)account
-              error:(NSError **)error;
+        email:(NSString *)email
+        error:(NSError **)error;
 
 // For unit tests: allow setting a mock object
 + (void)setDefaultKeychain:(GTMOAuth2Keychain *)keychain;

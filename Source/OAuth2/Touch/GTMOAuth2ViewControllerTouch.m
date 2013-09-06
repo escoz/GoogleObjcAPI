@@ -254,19 +254,14 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
 }
 
 #if !GTM_OAUTH2_SKIP_GOOGLE_SUPPORT
-+ (GTMOAuth2Authentication *)authForGoogleFromKeychainForName:(NSString *)keychainItemName
-                                                     clientID:(NSString *)clientID
-                                                 clientSecret:(NSString *)clientSecret {
-  return [self authForGoogleFromKeychainForName:keychainItemName
-                                       clientID:clientID
-                                   clientSecret:clientSecret
-                                          error:NULL];
+
++ (GTMOAuth2Authentication *)authForGoogleFromKeychainForName:(NSString *)keychainItemName clientID:(NSString *)clientID clientSecret:(NSString *)clientSecret email:(NSString *)email
+{
+  return [self authForGoogleFromKeychainForName:keychainItemName clientID:clientID clientSecret:clientSecret email:email error:NULL ];
 }
 
-+ (GTMOAuth2Authentication *)authForGoogleFromKeychainForName:(NSString *)keychainItemName
-                                                     clientID:(NSString *)clientID
-                                                 clientSecret:(NSString *)clientSecret
-                                                        error:(NSError **)error {
++ (GTMOAuth2Authentication *)authForGoogleFromKeychainForName:(NSString *)keychainItemName clientID:(NSString *)clientID clientSecret:(NSString *)clientSecret email:(NSString *)email error:(NSError **)error
+{
   Class signInClass = [self signInClass];
   NSURL *tokenURL = [signInClass googleTokenURL];
   NSString *redirectURI = [signInClass nativeClientRedirectURI];
@@ -277,24 +272,20 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
                                                         redirectURI:redirectURI
                                                            clientID:clientID
                                                        clientSecret:clientSecret];
-  [[self class] authorizeFromKeychainForName:keychainItemName
-                              authentication:auth
-                                       error:error];
+
+  [[self class] authorizeFromKeychainForName:keychainItemName authentication:auth email:email error:error];
   return auth;
 }
 
 #endif
 
-+ (BOOL)authorizeFromKeychainForName:(NSString *)keychainItemName
-                      authentication:(GTMOAuth2Authentication *)newAuth
-                               error:(NSError **)error {
++ (BOOL)authorizeFromKeychainForName:(NSString *)keychainItemName authentication:(GTMOAuth2Authentication *)newAuth email:(NSString *)email error:(NSError **)error
+{
   newAuth.accessToken = nil;
 
   BOOL didGetTokens = NO;
   GTMOAuth2Keychain *keychain = [GTMOAuth2Keychain defaultKeychain];
-  NSString *password = [keychain passwordForService:keychainItemName
-                                            account:kGTMOAuth2AccountName
-                                              error:error];
+  NSString *password = [keychain passwordForService:keychainItemName account:kGTMOAuth2AccountName email:email error:error];
   if (password != nil) {
     [newAuth setKeysForResponseString:password];
     didGetTokens = YES;
@@ -302,10 +293,11 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
   return didGetTokens;
 }
 
-+ (BOOL)removeAuthFromKeychainForName:(NSString *)keychainItemName {
++ (BOOL)removeAuthFromKeychainForName:(NSString *)keychainItemName email:(NSString *)email {
   GTMOAuth2Keychain *keychain = [GTMOAuth2Keychain defaultKeychain];
   return [keychain removePasswordForService:keychainItemName
                                     account:kGTMOAuth2AccountName
+                                      email:email
                                       error:nil];
 }
 
@@ -321,7 +313,7 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
                       accessibility:(CFTypeRef)accessibility
                      authentication:(GTMOAuth2Authentication *)auth
                               error:(NSError **)error {
-  [self removeAuthFromKeychainForName:keychainItemName];
+  [self removeAuthFromKeychainForName:keychainItemName email:auth.userEmail];
   // don't save unless we have a token that can really authorize requests
   if (![auth canAuthorize]) {
     if (error) {
@@ -344,6 +336,7 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
                     forService:keychainItemName
                  accessibility:accessibility
                        account:kGTMOAuth2AccountName
+                         email:auth.userEmail
                          error:error];
 }
 
@@ -617,7 +610,7 @@ static Class gSignInClass = Nil;
                                               error:NULL];
         } else {
           // remove the auth params from the keychain
-          [[self class] removeAuthFromKeychainForName:keychainItemName];
+          [[self class] removeAuthFromKeychainForName:keychainItemName email:auth.userEmail];
         }
       }
     }
@@ -942,29 +935,33 @@ static Class gSignInClass = Nil;
 #else // ! TARGET_IPHONE_SIMULATOR
 #pragma mark Device
 
-+ (NSMutableDictionary *)keychainQueryForService:(NSString *)service account:(NSString *)account {
++ (NSMutableDictionary *)keychainQueryForService:(NSString *)service account:(NSString *)account email:(NSString *)email{
   NSMutableDictionary *query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                          (id)kSecClassGenericPassword, (id)kSecClass,
                          @"OAuth", (id)kSecAttrGeneric,
                          account, (id)kSecAttrAccount,
                          service, (id)kSecAttrService,
                          nil];
+    if (email!=nil)
+        [query setObject:email forKey:kSecAttrLabel];
+
   return query;
 }
 
-- (NSMutableDictionary *)keychainQueryForService:(NSString *)service account:(NSString *)account {
-  return [[self class] keychainQueryForService:service account:account];
+- (NSMutableDictionary *)keychainQueryForService:(NSString *)service account:(NSString *)account email:(NSString *)email
+{
+  return [[self class] keychainQueryForService:service account:account email:email];
 }
 
 
-
 // iPhone
-- (NSString *)passwordForService:(NSString *)service account:(NSString *)account error:(NSError **)error {
+- (NSString *)passwordForService:(NSString *)service account:(NSString *)account email:(NSString *)email error:(NSError **)error
+{
   OSStatus status = kGTMOAuth2KeychainErrorBadArguments;
   NSString *result = nil;
   if (0 < [service length] && 0 < [account length]) {
     CFDataRef passwordData = NULL;
-    NSMutableDictionary *keychainQuery = [self keychainQueryForService:service account:account];
+    NSMutableDictionary *keychainQuery = [self keychainQueryForService:service account:account email:email ];
     [keychainQuery setObject:(id)kCFBooleanTrue forKey:(id)kSecReturnData];
     [keychainQuery setObject:(id)kSecMatchLimitOne forKey:(id)kSecMatchLimit];
 
@@ -988,10 +985,10 @@ static Class gSignInClass = Nil;
 
 
 // iPhone
-- (BOOL)removePasswordForService:(NSString *)service account:(NSString *)account error:(NSError **)error {
+- (BOOL)removePasswordForService:(NSString *)service account:(NSString *)account email:(NSString *)email error:(NSError **)error {
   OSStatus status = kGTMOAuth2KeychainErrorBadArguments;
   if (0 < [service length] && 0 < [account length]) {
-    NSMutableDictionary *keychainQuery = [self keychainQueryForService:service account:account];
+    NSMutableDictionary *keychainQuery = [self keychainQueryForService:service account:account email:email ];
     status = SecItemDelete((CFDictionaryRef)keychainQuery);
   }
   if (status != noErr && error != NULL) {
@@ -1007,12 +1004,13 @@ static Class gSignInClass = Nil;
          forService:(NSString *)service
       accessibility:(CFTypeRef)accessibility
             account:(NSString *)account
-              error:(NSError **)error {
+        email:(NSString *)email
+        error:(NSError **)error {
   OSStatus status = kGTMOAuth2KeychainErrorBadArguments;
   if (0 < [service length] && 0 < [account length]) {
-    [self removePasswordForService:service account:account error:nil];
+    [self removePasswordForService:service account:account email:email error:nil];
     if (0 < [password length]) {
-      NSMutableDictionary *keychainQuery = [self keychainQueryForService:service account:account];
+      NSMutableDictionary *keychainQuery = [self keychainQueryForService:service account:account email:email ];
       NSData *passwordData = [password dataUsingEncoding:NSUTF8StringEncoding];
       [keychainQuery setObject:passwordData forKey:(id)kSecValueData];
 
