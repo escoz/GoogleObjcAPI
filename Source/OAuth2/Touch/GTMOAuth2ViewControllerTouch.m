@@ -338,6 +338,7 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
                        account:kGTMOAuth2AccountName
                          email:auth.userEmail
                          error:error];
+    
 }
 
 - (void)loadView {
