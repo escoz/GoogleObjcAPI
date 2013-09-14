@@ -740,6 +740,9 @@ static Class gSignInClass = Nil;
   return YES;
 }
 
+
+
+
 - (void)updateUI {
   [backButton_ setEnabled:[[self webView] canGoBack]];
   [forwardButton_ setEnabled:[[self webView] canGoForward]];
@@ -750,6 +753,10 @@ static Class gSignInClass = Nil;
                webView:webView
                   kind:nil];
   [self updateUI];
+    UIActivityIndicatorView *view = [[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray] autorelease];
+    [view startAnimating];
+    view.tintColor = self.navigationController.navigationBar.tintColor;
+    self.navigationItem.rightBarButtonItem = [[[UIBarButtonItem alloc] initWithCustomView:view] autorelease];
 }
 
 - (void)webViewDidFinishLoad:(UIWebView *)webView {
@@ -757,6 +764,7 @@ static Class gSignInClass = Nil;
                webView:webView
                   kind:kGTMOAuth2WebViewFinished];
 
+    self.navigationItem.rightBarButtonItem = nil;
   NSString *title = [webView stringByEvaluatingJavaScriptFromString:@"document.title"];
   if ([title length] > 0) {
     [_authSignIn titleChanged:title];
@@ -781,6 +789,7 @@ static Class gSignInClass = Nil;
 }
 
 - (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
+    self.navigationItem.rightBarButtonItem = nil;
   [self notifyWithName:kGTMOAuth2WebViewStoppedLoading
                webView:webView
                   kind:kGTMOAuth2WebViewFailed];
