@@ -55,14 +55,6 @@
 + (void)load {
   [self registerObjectClassForKind:@"analytics#profile"];
 }
-
-- (UIColor *)dashboardBackgroundColor
-{
-    NSString *color = [self.userProperties valueForKey:@"color"];
-    float alpha = 0.09;
-    UIColor *tint = color == nil  ? [UIColor colorFromHexString:@"#777777" andAlpha:alpha] : [UIColor colorFromHexString:color andAlpha:alpha];
-    return tint;
-}
 @end
 
 

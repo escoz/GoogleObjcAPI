@@ -111,7 +111,6 @@
 // Website URL for this view (profile).
 @property (copy) NSString *websiteUrl;
 
-- (UIColor *)dashboardBackgroundColor;
 @end
 
 
