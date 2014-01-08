@@ -755,7 +755,6 @@ static Class gSignInClass = Nil;
   [self updateUI];
     UIActivityIndicatorView *view = [[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray] autorelease];
     [view startAnimating];
-    view.tintColor = self.navigationController.navigationBar.tintColor;
     self.navigationItem.rightBarButtonItem = [[[UIBarButtonItem alloc] initWithCustomView:view] autorelease];
 }
 
@@ -949,11 +948,10 @@ static Class gSignInClass = Nil;
   NSMutableDictionary *query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                          (id)kSecClassGenericPassword, (id)kSecClass,
                          @"OAuth", (id)kSecAttrGeneric,
-                         account, (id)kSecAttrAccount,
                          service, (id)kSecAttrService,
                          nil];
     if (email!=nil)
-        [query setObject:email forKey:kSecAttrLabel];
+        [query setObject:email forKey:kSecAttrAccount];
 
   return query;
 }
@@ -1036,7 +1034,8 @@ static Class gSignInClass = Nil;
                                  code:status
                              userInfo:nil];
   }
-  return status == noErr;
+    BOOL result = status == noErr;
+    return result;
 }
 
 #endif // ! TARGET_IPHONE_SIMULATOR
