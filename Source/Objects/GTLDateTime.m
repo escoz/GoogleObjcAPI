@@ -103,7 +103,7 @@ static NSMutableDictionary *gCalendarsForTimeZones = nil;
 }
 
 + (GTLDateTime *)dateTimeWithDateComponents:(NSDateComponents *)components {
-  NSCalendar *cal = [[[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar] autorelease];
+  NSCalendar *cal = [[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian] autorelease];
   NSDate *date = [cal dateFromComponents:components];
 #if GTL_IPHONE
   NSTimeZone *tz = [components timeZone];
@@ -179,7 +179,7 @@ static NSMutableDictionary *gCalendarsForTimeZones = nil;
 
   NSInteger offsetSeconds = self.offsetSeconds;
 
-  if (offsetSeconds != NSUndefinedDateComponent) {
+  if (offsetSeconds != NSDateComponentUndefined) {
     NSTimeZone *tz = [NSTimeZone timeZoneForSecondsFromGMT:offsetSeconds];
     return tz;
   }
@@ -194,7 +194,7 @@ static NSMutableDictionary *gCalendarsForTimeZones = nil;
     NSInteger offsetSeconds = [timeZone secondsFromGMTForDate:self.date];
     self.offsetSeconds = offsetSeconds;
   } else {
-    self.offsetSeconds = NSUndefinedDateComponent;
+    self.offsetSeconds = NSDateComponentUndefined;
   }
 }
 

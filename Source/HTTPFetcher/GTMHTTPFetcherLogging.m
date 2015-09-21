@@ -776,7 +776,7 @@ static NSString* gLoggingProcessName = nil;
 
   // Write the response data
   if (responseDataFileName) {
-    NSString *escapedResponseFile = [responseDataFileName stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+    NSString *escapedResponseFile = [responseDataFileName stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     if (isResponseImage) {
       // Make a small inline image that links to the full image file
       [outputHTML appendFormat:@"&nbsp;&nbsp; data: %d bytes, <code>%@</code><br>",

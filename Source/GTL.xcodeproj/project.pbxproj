@@ -735,7 +735,7 @@
 			name = GTLUnitTests;
 			productName = GTLUnitTests;
 			productReference = 4F12027D11A4CA2F00BEB470 /* GTLUnitTests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 		4F1AD9010B71603F00DC0485 /* DevelopmentTestTool */ = {
 			isa = PBXNativeTarget;
@@ -1188,6 +1188,7 @@
 		4F1C6E101027B3CF00B46459 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"$(inherited)",
@@ -1202,6 +1203,7 @@
 		4F1C6E111027B3CF00B46459 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				OTHER_CFLAGS = (
 					"$(inherited)",
 					"-DGTL_IPHONE=1",

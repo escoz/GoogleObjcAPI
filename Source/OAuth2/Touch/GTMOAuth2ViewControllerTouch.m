@@ -324,10 +324,10 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
     return NO;
   }
 
-  if (accessibility == NULL
-      && &kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly != NULL) {
-    accessibility = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly;
-  }
+ // if (accessibility == NULL
+ //     && &kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly != NULL) {
+ //   accessibility = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly;
+ // }
 
   // make a response string containing the values we want to save
   NSString *password = [auth persistenceResponseString];
@@ -951,7 +951,7 @@ static Class gSignInClass = Nil;
                          service, (id)kSecAttrService,
                          nil];
     if (email!=nil)
-        [query setObject:email forKey:kSecAttrAccount];
+        [query setObject:email forKey:(id)kSecAttrAccount];
 
   return query;
 }
@@ -1022,10 +1022,10 @@ static Class gSignInClass = Nil;
       NSData *passwordData = [password dataUsingEncoding:NSUTF8StringEncoding];
       [keychainQuery setObject:passwordData forKey:(id)kSecValueData];
 
-      if (accessibility != NULL && &kSecAttrAccessible != NULL) {
-        [keychainQuery setObject:(id)accessibility
-                          forKey:(id)kSecAttrAccessible];
-      }
+     // if (accessibility != NULL && &kSecAttrAccessible != NULL) {
+    //    [keychainQuery setObject:(id)accessibility
+     //                     forKey:(id)kSecAttrAccessible];
+     // }
       status = SecItemAdd((CFDictionaryRef)keychainQuery, NULL);
     }
   }
